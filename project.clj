@@ -6,6 +6,7 @@
 
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.89" :scope "provided"]
+                 [org.clojure/core.async "0.2.395"]
                  [com.cognitect/transit-clj "0.8.285"]
                  [ring "1.4.0"]
                  [ring/ring-defaults "0.2.0"]
@@ -13,6 +14,7 @@
                  [ring.middleware.logger "0.5.0"]
                  [compojure "1.5.0"]
                  [environ "1.0.3"]
+                 [rm-hull/monet "0.3.0"]
                  [reagent "0.6.0-rc"]]
 
   :plugins [[lein-cljsbuild "1.1.3"]
