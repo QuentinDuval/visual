@@ -110,7 +110,7 @@
 
 (defn beside
   "Combine two rendering functions to render side to side"
-  [ratio render-form1 render-form2]
+  [ratio left-form right-form]
   (fn [frame]
     (let [x-orign (get-in frame [:origin :x])
           x-scale (get-in frame [:x-axis :x])
@@ -119,8 +119,24 @@
                     (assoc-in [:origin :x] (+ x-orign (* x-scale ratio)))
                     (assoc-in [:x-axis :x] (* x-scale (- 1.0 ratio)))
                     )]
-        (render-form1 l-frame)
-        (render-form2 r-frame)
+        (left-form l-frame)
+        (right-form r-frame)
+      )))
+
+;; TODO - Factorize with beside
+(defn above
+  "Combine two rendering functions to render one on top of the other"
+  [ratio top-form bottom-form]
+  (fn [frame]
+    (let [y-orign (get-in frame [:origin :y])
+          y-scale (get-in frame [:y-axis :y])
+          t-frame (update-in frame [:y-axis :y] #(* ratio %))
+          b-frame (-> frame
+                    (assoc-in [:origin :y] (+ y-orign (* y-scale ratio)))
+                    (assoc-in [:y-axis :y] (* y-scale (- 1.0 ratio)))
+                    )]
+        (top-form t-frame)
+        (bottom-form b-frame)
       )))
 
 (defn rotate
@@ -226,7 +242,11 @@
             frame))
         (doseq [p (:persons state)]
           (render
-            (beside 0.3 (person-renderer p) (person-renderer p))
+            (beside 0.3
+              (person-renderer p)
+              (above 0.4
+                (person-renderer p)
+                (person-renderer p)))
             frame))
         ))))
 
