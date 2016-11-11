@@ -152,6 +152,14 @@
                     )]
         (render-form r-frame))))
 
+(defn flip
+  "Flip the image vertically"
+  [form]
+  (fn [{:keys [y-axis] :as frame}]
+    (let [reversed (assoc-in frame [:y-axis] (scale-vector -1 y-axis))
+          flipped (update-in reversed [:origin] #(vector-sum % y-axis))]
+      (form flipped))))
+
 
 ;; -------------------------------------------------------------
 ;; Basic GUI objects
@@ -236,7 +244,7 @@
             (beside 0.3
               (person-renderer p)
               (above 0.4
-                (person-renderer p)
+                (flip (person-renderer p))
                 (person-renderer p)))
             frame))
         ))))
