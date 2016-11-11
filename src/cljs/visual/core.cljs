@@ -104,7 +104,11 @@
 ;; Means of combination to draw on the frame
 ;; -------------------------------------------------------------
 
-(defn render-beside
+(defn render
+  "A renderer is a function: Frame -> Display Effect"
+  [renderer frame] (renderer frame))
+
+(defn beside
   "Combine two rendering functions to render side to side"
   [ratio render-form1 render-form2]
   (fn [frame]
@@ -120,7 +124,7 @@
         frame
       )))
 
-(defn render-rotate
+(defn rotate
   "Transform a rendering function to be rotated"
   [angle render-form]
   (fn [frame]
@@ -145,18 +149,19 @@
 (defn make-person [h w]
   (Person. h w))
 
-(defn render-line
-  "Render a line on the screen"
-  [{:keys [line-start line-end]} frame]
-  (-> frame
-    (move-to (:x line-start) (:y line-start))
-    (line-to (:x line-end) (:y line-end))
-    (stroke)
-    ))
+(defn line-renderer
+  "Create a render function for a line"
+  [{:keys [line-start line-end]}]
+  (fn [frame]
+    (-> frame
+      (move-to (:x line-start) (:y line-start))
+      (line-to (:x line-end) (:y line-end))
+      (stroke)
+      )))
 
-(defn render-person
-  "Render a person like form: the line gives the perimeter"
-  [{:keys [height width] :as person} frame]
+(defn person-renderer
+  "Create a render function for a person"
+  [{:keys [height width] :as person}]
   (let [head-base (* height 0.85)
         head-diag (- height head-base)
         head-ypos (+ head-base (/ head-diag 2))
@@ -164,23 +169,24 @@
         body-xpos (* width 0.5)
         arms-base (* height 0.55)
         arm-width (* width 0.4)]
-    (-> frame
-      ;; The legs
-      (move-to 0 0)
-      (line-to body-xpos body-base)
-      (line-to width 0)
-      ;; The body
-      (move-to body-xpos body-base)
-      (line-to body-xpos head-base)
-      ;; The arms
-      (move-to body-xpos head-base)
-      (line-to (- body-xpos arm-width) arms-base)
-      (move-to body-xpos head-base)
-      (line-to (+ body-xpos arm-width) arms-base)
-      (stroke)
-      ;; The head
-      (circle body-xpos head-ypos (/ head-diag 2))
-      )))
+    (fn [frame]
+      (-> frame
+        ;; The legs
+        (move-to 0 0)
+        (line-to body-xpos body-base)
+        (line-to width 0)
+        ;; The body
+        (move-to body-xpos body-base)
+        (line-to body-xpos head-base)
+        ;; The arms
+        (move-to body-xpos head-base)
+        (line-to (- body-xpos arm-width) arms-base)
+        (move-to body-xpos head-base)
+        (line-to (+ body-xpos arm-width) arms-base)
+        (stroke)
+        ;; The head
+        (circle body-xpos head-ypos (/ head-diag 2))
+        ))))
 
 
 ;; -------------------------------------------------------------
@@ -217,13 +223,13 @@
       (let [frame (make-frame ctx 0 0 WIDTH HEIGHT)]
         (canvas/stroke-width ctx 6)
         (doseq [l (:lines state)]
-          ((render-rotate 0.2
-             (partial render-line l))
+          ((rotate 0.2
+             (line-renderer l))
             frame))
         (doseq [p (:persons state)]
-          ((render-beside 0.3
-             (partial render-person p)
-             (partial render-person p))
+          ((beside 0.3
+             (person-renderer p)
+             (person-renderer p))
             frame))
         ))))
 
