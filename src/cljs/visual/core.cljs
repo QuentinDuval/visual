@@ -21,13 +21,6 @@
 ;; The frame object on which we can draw
 ;; -------------------------------------------------------------
 
-;; TODO - A complete different way to do it would be to store operations
-;; - Rotate operations
-;; - Scale opeations
-;; - Translation operations
-;; This is operational transformations
-;; => easier than frame that requires to reconstruct these
-
 (defrecord Vector [x y])
 (defrecord Frame [ctx origin x-axis y-axis])
 
@@ -43,9 +36,6 @@
 
 (defn scale-vector [ratio v]
   (Vector. (* ratio (:x v)) (* ratio (:y v))))
-
-(defn scalar-product [u v]
-  (Vector. (* (:x v) (:x u)) (* (:y v) (:y u))))
 
 (defn vector-sum [u v]
   (Vector. (+ (:x v) (:x u)) (+ (:y v) (:y u))))
