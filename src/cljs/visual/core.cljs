@@ -220,7 +220,7 @@
 (defonce game-state
   (atom
     {:title "Draw shapes on the board"
-     :lines [(make-line 0.0 0.0 1.0 1.0) , (make-line 0.0 1.0 1.0 0.0)]
+     :lines [(make-line 0.2 0.1 0.2 0.9)]
      :persons [(make-person 1.0 0.5)]
      }))
 
