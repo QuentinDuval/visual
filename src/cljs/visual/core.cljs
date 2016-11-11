@@ -65,6 +65,12 @@
 (defn to-frame-y [frame y]
   (:y (to-frame-vector frame (Vector. 0 y))))
 
+(defn flip-frame
+  "Flip the frame (revert the y-axis)"
+  [{:keys [y-axis] :as frame}]
+  (let [reversed (assoc-in frame [:y-axis] (scale-vector -1 y-axis))]
+    (update-in reversed [:origin] #(vector-sum % y-axis))))
+
 
 ;; -------------------------------------------------------------
 ;; Primitive methods to draw on the frame
@@ -155,10 +161,7 @@
 (defn flip
   "Flip the image vertically"
   [form]
-  (fn [{:keys [y-axis] :as frame}]
-    (let [reversed (assoc-in frame [:y-axis] (scale-vector -1 y-axis))
-          flipped (update-in reversed [:origin] #(vector-sum % y-axis))]
-      (form flipped))))
+  (fn [frame] (form (flip-frame frame))))
 
 
 ;; -------------------------------------------------------------
@@ -233,7 +236,7 @@
     @game-state
     (fn update [_] @game-state)
     (fn draw [ctx state]
-      (let [frame (make-frame ctx 0 0 WIDTH HEIGHT)]
+      (let [frame (flip-frame (make-frame ctx 0 0 WIDTH HEIGHT))]
         (canvas/stroke-width ctx 6)
         (doseq [l (:lines state)]
           (render
