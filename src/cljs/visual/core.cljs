@@ -115,6 +115,7 @@
 ;; -------------------------------------------------------------
 
 (defn render-beside
+  "Combine two rendering functions to render side to side"
   [ratio render-form1 render-form2]
   (fn [frame]
     (let [x-orign (get-in frame [:origin :x])
@@ -128,6 +129,17 @@
         (render-form2 r-frame)
         frame
       )))
+
+(defn render-rotate
+  "Transform a rendering function to be rotated"
+  [angle render-form]
+  (fn [frame]
+    (let [rotation #(rotate-vector angle %)
+          r-frame (-> frame
+                    (update-in [:x-axis] rotation)
+                    (update-in [:y-axis] rotation)
+                    )]
+        (render-form r-frame))))
 
 
 ;; -------------------------------------------------------------
@@ -215,7 +227,9 @@
       (let [frame (make-frame ctx 0 0 WIDTH HEIGHT)]
         (canvas/stroke-width ctx 6)
         (doseq [l (:lines state)]
-          (render-line l frame))
+          ((render-rotate 0.2
+             (partial render-line l))
+            frame))
         (doseq [p (:persons state)]
           ((render-beside 0.3
              (partial render-person p)
