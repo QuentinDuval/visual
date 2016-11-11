@@ -85,6 +85,13 @@
 (defn stroke [frame]
   (canvas/stroke (:ctx frame)) frame)
 
+(defn line-from-to [frame x0 y0 x1 y1]
+  (-> frame
+    (move-to x0 y0)
+    (line-to x1 y1)
+    (stroke)
+    ))
+
 (defn ellipse
   "Draw an elipse in the frame (the implementation workarounds a bug in canvas/ellipse)"
   [frame x y w h]
@@ -163,39 +170,28 @@
   "Create a render function for a line"
   [{:keys [line-start line-end]}]
   (fn [frame]
-    (-> frame
-      (move-to (:x line-start) (:y line-start))
-      (line-to (:x line-end) (:y line-end))
-      (stroke)
-      )))
+    (line-from-to frame
+      (:x line-start) (:y line-start)
+      (:x line-end) (:y line-end))))
 
 (defn person-renderer
   "Create a render function for a person"
   [{:keys [height width] :as person}]
-  (let [head-base (* height 0.85)
-        head-diag (- height head-base)
-        head-ypos (+ head-base (/ head-diag 2))
-        body-base (* height 0.45)
-        body-xpos (* width 0.5)
-        arms-base (* height 0.55)
-        arm-width (* width 0.4)]
+  (let [neck-y (* height 0.85)
+        head-diag (- height neck-y)
+        head-y (+ neck-y (/ head-diag 2))
+        groin-y (* height 0.45)
+        torso-x (* width 0.5)
+        hands-y (* height 0.55)
+        arm-len (* width 0.4)]
     (fn [frame]
       (-> frame
-        ;; The legs
-        (move-to 0 0)
-        (line-to body-xpos body-base)
-        (line-to width 0)
-        ;; The body
-        (move-to body-xpos body-base)
-        (line-to body-xpos head-base)
-        ;; The arms
-        (move-to body-xpos head-base)
-        (line-to (- body-xpos arm-width) arms-base)
-        (move-to body-xpos head-base)
-        (line-to (+ body-xpos arm-width) arms-base)
-        (stroke)
-        ;; The head
-        (circle body-xpos head-ypos (/ head-diag 2))
+        (line-from-to torso-x groin-y 0 0)
+        (line-from-to torso-x groin-y width 0)
+        (line-from-to torso-x groin-y torso-x neck-y)
+        (line-from-to torso-x neck-y (- torso-x arm-len) hands-y)
+        (line-from-to torso-x neck-y (+ torso-x arm-len) hands-y)
+        (circle torso-x head-y (/ head-diag 2))
         ))))
 
 
