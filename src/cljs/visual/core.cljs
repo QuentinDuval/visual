@@ -23,9 +23,13 @@
 
 (defrecord Point [x y])
 (defrecord Line [line-start line-end])
+(defrecord Person [height width])
 
 (defn make-line [x0 y0 x1 y1]
   (Line. (Point. x0 y0) (Point. x1 y1)))
+
+(defn make-person [h w]
+  (Person. h w))
 
 
 ;; -------------------------------------------------------------
@@ -35,8 +39,9 @@
 (defonce game-state
   (atom
     {:title "Draw shapes on the board"
-     :lines [(make-line 100 100 200 200)]}
-    ))
+     :lines [(make-line 100 100 200 200)]
+     :persons [(make-person 200 150)]
+     }))
 
 
 ;; -------------------------------------------------------------
@@ -75,28 +80,33 @@
 
 (defn render-person
   "Render a person like form: the line gives the perimeter"
-  [ctx person]
-  (-> ctx
-    (canvas/save)
-    ;; The legs
-    (canvas/move-to 0 0)
-    (canvas/line-to 75 100)
-    (canvas/line-to 150 0)
-    ;; The body
-    (canvas/move-to 75 100)
-    (canvas/line-to 75 200)
-    ;; The arms
-    (canvas/move-to 75 200)
-    (canvas/line-to 10 150)
-    (canvas/move-to 75 200)
-    (canvas/line-to 140 150)
-    (canvas/stroke)
-
-    ;; The head
-    (canvas/circle {:x 75 :y 220 :r 20})
-    ;; Draw
-    (canvas/restore)
-    ))
+  [ctx {:keys [height width] :as person}]
+  (let [head-base (* height 0.85)
+        head-diag (- height head-base)
+        head-ypos (+ head-base (/ head-diag 2))
+        body-base (* height 0.45)
+        body-xpos (* width 0.5)
+        arms-base (* height 0.55)
+        arm-width (* width 0.4)]
+    (-> ctx
+      (canvas/save)
+      ;; The legs
+      (canvas/move-to 0 0)
+      (canvas/line-to body-xpos body-base)
+      (canvas/line-to width 0)
+      ;; The body
+      (canvas/move-to body-xpos body-base)
+      (canvas/line-to body-xpos head-base)
+      ;; The arms
+      (canvas/move-to body-xpos head-base)
+      (canvas/line-to (- body-xpos arm-width) arms-base)
+      (canvas/move-to body-xpos head-base)
+      (canvas/line-to (+ body-xpos arm-width) arms-base)
+      (canvas/stroke)
+      ;; The head
+      (canvas/circle {:x body-xpos :y head-ypos :r (/ head-diag 2)})
+      (canvas/restore)
+      )))
 
 
 
@@ -115,7 +125,8 @@
     (fn draw [ctx state]
       (doseq [l (:lines state)]
         (render-line ctx l))
-      (render-person ctx 1)
+      (doseq [p (:persons state)]
+        (render-person ctx p))
       )))
 
 (defn main-render
