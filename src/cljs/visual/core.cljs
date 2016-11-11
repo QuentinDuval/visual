@@ -30,8 +30,8 @@
   (Frame.
     ctx
     (Vector. x y)
-    (Vector. (+ x width) y)
-    (Vector. x (+ y height))
+    (Vector. width y)
+    (Vector. x height)
     ))
 
 (defn scale-vector [ratio v]
