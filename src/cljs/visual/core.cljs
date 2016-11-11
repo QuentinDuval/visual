@@ -13,7 +13,7 @@
 ;; Constants
 ;; -------------------------------------------------------------
 
-(defonce WIDTH 500)
+(defonce WIDTH 800)
 (defonce HEIGHT 500)
 
 
@@ -35,7 +35,7 @@
 (defonce game-state
   (atom
     {:title "Draw shapes on the board"
-     :lines [(make-line 100 100 100 100)]}
+     :lines [(make-line 100 100 200 200)]}
     ))
 
 
@@ -45,15 +45,66 @@
 
 (defn render-line
   "Render a line on the screen"
-  [ctx line]
+  [ctx {:keys [line-start line-end]}]
   (-> ctx
-    (canvas/fill-style "red")
-    (canvas/fill-rect
-      {:x (:x (:line-start line))
-       :y (:y (:line-start line))
-       :w (:x (:line-end line))
-       :h (:y (:line-end line))})
+    (canvas/stroke-width 6)
+    (canvas/stroke-style "black")
+    (canvas/move-to (:x line-start) (:y line-start))
+    (canvas/line-to (:x line-end) (:y line-end))
+    (canvas/stroke)
     ))
+
+
+
+
+#_(defn render-rect
+  "Render a rectangle on the screen"
+  [ctx rect]
+  (-> ctx
+    (canvas/fill-rect
+      {:x (:x (:line-start rect))
+       :y (:y (:line-start rect))
+       :w (:x (:line-end rect))
+       :h (:y (:line-end rect))})
+    ))
+
+
+;; -------------------------------------------------------------
+;; Rendering complex shape
+;; -------------------------------------------------------------
+
+(defn render-person
+  "Render a person like form: the line gives the perimeter"
+  [ctx person]
+  (-> ctx
+    (canvas/save)
+    ;; The legs
+    (canvas/move-to 0 0)
+    (canvas/line-to 75 100)
+    (canvas/line-to 150 0)
+    ;; The body
+    (canvas/move-to 75 100)
+    (canvas/line-to 75 200)
+    ;; The arms
+    (canvas/move-to 75 200)
+    (canvas/line-to 10 150)
+    (canvas/move-to 75 200)
+    (canvas/line-to 140 150)
+    (canvas/stroke)
+
+    ;; The head
+    (canvas/circle {:x 75 :y 220 :r 20})
+    ;; Draw
+    (canvas/restore)
+    ))
+
+
+
+
+
+;; -------------------------------------------------------------
+;; Main rendering component
+;; -------------------------------------------------------------
 
 (defn main-game-entity
   "Draw the main game entity in the canvas"
@@ -64,12 +115,8 @@
     (fn draw [ctx state]
       (doseq [l (:lines state)]
         (render-line ctx l))
+      (render-person ctx 1)
       )))
-
-
-;; -------------------------------------------------------------
-;; Main rendering component
-;; -------------------------------------------------------------
 
 (defn main-render
   "Render the space ship game"
@@ -77,9 +124,9 @@
   (reagent/create-class
     {:component-did-mount
      (fn did-mount []
-       (let [ship-canvas (canvas/init (js/document.getElementById "board") "2d")]
-         (canvas/add-entity ship-canvas :game-entity (main-game-entity))
-         (canvas/draw-loop ship-canvas)
+       (let [main-canvas (canvas/init (js/document.getElementById "board") "2d")]
+         (canvas/add-entity main-canvas :main-entity (main-game-entity))
+         (canvas/draw-loop main-canvas)
          ))
      :reagent-render
      (fn render []
