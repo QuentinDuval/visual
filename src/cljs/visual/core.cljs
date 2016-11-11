@@ -41,22 +41,17 @@
     (Vector. x (+ y height))
     ))
 
-(defn scalar-product
-  [scaling v]
-  (Vector.
-    (* (:x v) (:x scaling v))
-    (* (:y v) (:y scaling v))
-    ))
+(defn scale-vector [ratio v]
+  (Vector. (* ratio (:x v)) (* ratio (:y v))))
 
-(defn translate
-  [translation v]
-  (Vector.
-    (+ (:x v) (:x translation v))
-    (+ (:y v) (:y translation v))
-    ))
+(defn scalar-product [u v]
+  (Vector. (* (:x v) (:x u)) (* (:y v) (:y u))))
+
+(defn vector-sum [u v]
+  (Vector. (+ (:x v) (:x u)) (+ (:y v) (:y u))))
 
 (defn rotate-vector
-  [angle v]
+  [angle {:keys [x y] :as v}]
   (let [sin (js/Math.sin angle)
         cos (js/Math.cos angle)]
     (Vector.
@@ -64,30 +59,21 @@
       (+ (* x sin) (* y cos))
       )))
 
-#_(defn to-frame-vector
+(defn to-frame-vector
   "Transform a vector to fit the frame"
   [{:keys [origin x-axis y-axis] :as frame} v]
-  (let [angle 0]
-    (rotate )
-    ))
+  (vector-sum
+    origin
+    (vector-sum
+      (scale-vector (:x v) x-axis)
+      (scale-vector (:y v) y-axis)
+      )))
 
+(defn to-frame-x [frame x]
+  (:x (to-frame-vector frame (Vector. x 0))))
 
-(defn to-frame-x
-  [{:keys [origin x-axis y-axis] :as frame} x]
-  (+ (:x origin) (* (:x x-axis) x)))
-
-(defn to-frame-y
-  [{:keys [origin x-axis y-axis] :as frame} y]
-  (+ (:y origin) (* (:y y-axis) y)))
-
-(defn to-frame-coord
-  "Transform a vector to fit the frame"
-  ;; TODO - Does not yet take into account the rotations
-  [frame v]
-  (Vector.
-    (to-frame-x frame (:x v))
-    (to-frame-y frame (:y v))
-    ))
+(defn to-frame-y [frame y]
+  (:y (to-frame-vector frame (Vector. 0 y))))
 
 
 ;; -------------------------------------------------------------
@@ -96,7 +82,7 @@
 
 (defn- forward-action-to-canvas
   [frame action x y]
-  (let [p (to-frame-coord frame (Vector. x y))]
+  (let [p (to-frame-vector frame (Vector. x y))]
     (action (:ctx frame) (:x p) (:y p)))
   frame)
 
