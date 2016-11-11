@@ -18,11 +18,10 @@
 
 
 ;; -------------------------------------------------------------
-;; Create the main objects
+;; The frame object on which we can draw
 ;; -------------------------------------------------------------
 
 (defrecord Vector [x y])
-
 (defrecord Frame [ctx origin x-axis y-axis])
 
 (defn make-frame
@@ -52,36 +51,29 @@
     (to-frame-y frame (:y v))
     ))
 
-;; TODO - Factorize
-(defn line-to
-  [frame x y]
+
+;; -------------------------------------------------------------
+;; Primitive methods to draw on the frame
+;; -------------------------------------------------------------
+
+(defn- forward-action-to-canvas
+  [frame action x y]
   (let [p (to-frame-coord frame (Vector. x y))]
-    (canvas/line-to
-      (:ctx frame)
-      (:x p)
-      (:y p)
-      ))
+    (action (:ctx frame) (:x p) (:y p)))
   frame)
 
-;; TODO - Factorize
-(defn move-to
-  [frame x y]
-  (let [p (to-frame-coord frame (Vector. x y))]
-    (canvas/move-to
-      (:ctx frame)
-      (:x p)
-      (:y p)
-      ))
-  frame)
+(defn line-to [frame x y]
+  (forward-action-to-canvas frame canvas/line-to x y))
 
-(defn stroke
-  [frame]
-  (canvas/stroke (:ctx frame))
-  frame)
+(defn move-to [frame x y]
+  (forward-action-to-canvas frame canvas/move-to x y))
+
+(defn stroke [frame]
+  (canvas/stroke (:ctx frame)) frame)
 
 (defn ellipse
+  "Draw an elipse in the frame (the implementation workarounds a bug in canvas/ellipse)"
   [frame x y w h]
-  ;; The implementation is weird because canvas/ellipse is bugged
   (-> (:ctx frame)
     (canvas/save)
     (canvas/translate (to-frame-x frame x) (to-frame-y frame y))
@@ -90,9 +82,13 @@
                      :rh (* h (get-in frame [:y-axis :y]))})
     (canvas/restore)))
 
-(defn circle
-  [frame x y r]
+(defn circle [frame x y r]
   (ellipse frame x y r r))
+
+
+;; -------------------------------------------------------------
+;; Means of combination to draw on the frame
+;; -------------------------------------------------------------
 
 (defn render-beside
   [ratio render-form1 render-form2]
@@ -111,7 +107,7 @@
 
 
 ;; -------------------------------------------------------------
-;; Basic frame objects
+;; Basic GUI objects
 ;; -------------------------------------------------------------
 
 (defrecord Line [line-start line-end])
@@ -123,23 +119,6 @@
 (defn make-person [h w]
   (Person. h w))
 
-
-;; -------------------------------------------------------------
-;; Game state
-;; -------------------------------------------------------------
-
-(defonce game-state
-  (atom
-    {:title "Draw shapes on the board"
-     :lines [(make-line 0.0 0.0 1.0 1.0) , (make-line 0.0 1.0 1.0 0.0)]
-     :persons [(make-person 1.0 0.5)]
-     }))
-
-
-;; -------------------------------------------------------------
-;; Drawing simple entities
-;; -------------------------------------------------------------
-
 (defn render-line
   "Render a line on the screen"
   [{:keys [line-start line-end]} frame]
@@ -148,11 +127,6 @@
     (line-to (:x line-end) (:y line-end))
     (stroke)
     ))
-
-
-;; -------------------------------------------------------------
-;; Rendering complex shape
-;; -------------------------------------------------------------
 
 (defn render-person
   "Render a person like form: the line gives the perimeter"
@@ -184,6 +158,18 @@
 
 
 ;; -------------------------------------------------------------
+;; Game state
+;; -------------------------------------------------------------
+
+(defonce game-state
+  (atom
+    {:title "Draw shapes on the board"
+     :lines [(make-line 0.0 0.0 1.0 1.0) , (make-line 0.0 1.0 1.0 0.0)]
+     :persons [(make-person 1.0 0.5)]
+     }))
+
+
+;; -------------------------------------------------------------
 ;; Main rendering component
 ;; -------------------------------------------------------------
 
@@ -199,7 +185,7 @@
         (doseq [l (:lines state)]
           (render-line l frame))
         (doseq [p (:persons state)]
-          ((render-beside 0.5
+          ((render-beside 0.3
              (partial render-person p)
              (partial render-person p))
             frame))
