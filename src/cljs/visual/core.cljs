@@ -105,7 +105,7 @@
 ;; -------------------------------------------------------------
 
 (defn render
-  "A renderer is a function: Frame -> Display Effect"
+  "A renderer is a function: Frame -> Frame + a display effect"
   [renderer frame] (renderer frame))
 
 (defn beside
@@ -121,7 +121,6 @@
                     )]
         (render-form1 l-frame)
         (render-form2 r-frame)
-        frame
       )))
 
 (defn rotate
@@ -200,7 +199,6 @@
 ;; Game state
 ;; -------------------------------------------------------------
 
-
 (defonce game-state
   (atom
     {:title "Draw shapes on the board"
@@ -213,8 +211,8 @@
 ;; Main rendering component
 ;; -------------------------------------------------------------
 
-(defn main-game-entity
-  "Draw the main game entity in the canvas"
+(defn main-entity
+  "Draw the main entity in the canvas"
   []
   (canvas/entity
     @game-state
@@ -223,24 +221,23 @@
       (let [frame (make-frame ctx 0 0 WIDTH HEIGHT)]
         (canvas/stroke-width ctx 6)
         (doseq [l (:lines state)]
-          ((rotate 0.2
-             (line-renderer l))
+          (render
+            (rotate 0.2 (line-renderer l))
             frame))
         (doseq [p (:persons state)]
-          ((beside 0.3
-             (person-renderer p)
-             (person-renderer p))
+          (render
+            (beside 0.3 (person-renderer p) (person-renderer p))
             frame))
         ))))
 
 (defn main-render
-  "Render the space ship game"
+  "Prepare the main canvas and render the whole page afterwards"
   []
   (reagent/create-class
     {:component-did-mount
      (fn did-mount []
        (let [main-canvas (canvas/init (js/document.getElementById "board") "2d")]
-         (canvas/add-entity main-canvas :main-entity (main-game-entity))
+         (canvas/add-entity main-canvas :main-entity (main-entity))
          (canvas/draw-loop main-canvas)
          ))
      :reagent-render
@@ -251,6 +248,5 @@
         ])
      }))
 
-(reagent/render
-  [main-render]
+(reagent/render [main-render]
   (js/document.getElementById "app"))
