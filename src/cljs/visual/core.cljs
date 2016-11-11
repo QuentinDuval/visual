@@ -255,7 +255,7 @@
     (fn update [_] @game-state)
     (fn draw [ctx state]
       (let [frame (flip-frame (make-frame ctx 0 0 WIDTH HEIGHT))]
-        (canvas/stroke-width ctx 6)
+        (canvas/stroke-width ctx 3)
         (doseq [l (:lines state)]
           (render
             (rotate 0.2 (line-renderer l))
