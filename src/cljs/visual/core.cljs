@@ -108,36 +108,31 @@
   "A renderer is a function: Frame -> Frame + a display effect"
   [renderer frame] (renderer frame))
 
+(defn- axis-renderer
+  "Allows to combine two rendering functions to render two pictures:
+   Each picture will be on one side of the an axis"
+  [get-origin get-span ratio form1 form2]
+  (fn [frame]
+    (let [origin  (get-in frame get-origin)
+          scale   (get-in frame get-span)
+          frame-1 (update-in frame get-span #(* ratio %))
+          frame-2 (-> frame
+                    (assoc-in get-origin (+ origin (* scale ratio)))
+                    (assoc-in get-span (* scale (- 1.0 ratio)))
+                    )]
+      (form1 frame-1)
+      (form2 frame-2)
+      )))
+
 (defn beside
   "Combine two rendering functions to render side to side"
   [ratio left-form right-form]
-  (fn [frame]
-    (let [x-orign (get-in frame [:origin :x])
-          x-scale (get-in frame [:x-axis :x])
-          l-frame (update-in frame [:x-axis :x] #(* ratio %))
-          r-frame (-> frame
-                    (assoc-in [:origin :x] (+ x-orign (* x-scale ratio)))
-                    (assoc-in [:x-axis :x] (* x-scale (- 1.0 ratio)))
-                    )]
-        (left-form l-frame)
-        (right-form r-frame)
-      )))
+  (axis-renderer [:origin :x] [:x-axis :x] ratio left-form right-form))
 
-;; TODO - Factorize with beside
 (defn above
   "Combine two rendering functions to render one on top of the other"
   [ratio top-form bottom-form]
-  (fn [frame]
-    (let [y-orign (get-in frame [:origin :y])
-          y-scale (get-in frame [:y-axis :y])
-          t-frame (update-in frame [:y-axis :y] #(* ratio %))
-          b-frame (-> frame
-                    (assoc-in [:origin :y] (+ y-orign (* y-scale ratio)))
-                    (assoc-in [:y-axis :y] (* y-scale (- 1.0 ratio)))
-                    )]
-        (top-form t-frame)
-        (bottom-form b-frame)
-      )))
+  (axis-renderer [:origin :y] [:y-axis :y] ratio top-form bottom-form))
 
 (defn rotate
   "Transform a rendering function to be rotated"
