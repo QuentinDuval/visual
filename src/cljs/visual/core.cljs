@@ -21,6 +21,13 @@
 ;; The frame object on which we can draw
 ;; -------------------------------------------------------------
 
+;; TODO - A complete different way to do it would be to store operations
+;; - Rotate operations
+;; - Scale opeations
+;; - Translation operations
+;; This is operational transformations
+;; => easier than frame that requires to reconstruct these
+
 (defrecord Vector [x y])
 (defrecord Frame [ctx origin x-axis y-axis])
 
@@ -33,6 +40,37 @@
     (Vector. (+ x width) y)
     (Vector. x (+ y height))
     ))
+
+(defn scalar-product
+  [scaling v]
+  (Vector.
+    (* (:x v) (:x scaling v))
+    (* (:y v) (:y scaling v))
+    ))
+
+(defn translate
+  [translation v]
+  (Vector.
+    (+ (:x v) (:x translation v))
+    (+ (:y v) (:y translation v))
+    ))
+
+(defn rotate-vector
+  [angle v]
+  (let [sin (js/Math.sin angle)
+        cos (js/Math.cos angle)]
+    (Vector.
+      (- (* x cos) (* y sin))
+      (+ (* x sin) (* y cos))
+      )))
+
+#_(defn to-frame-vector
+  "Transform a vector to fit the frame"
+  [{:keys [origin x-axis y-axis] :as frame} v]
+  (let [angle 0]
+    (rotate )
+    ))
+
 
 (defn to-frame-x
   [{:keys [origin x-axis y-axis] :as frame} x]
