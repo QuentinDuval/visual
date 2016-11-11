@@ -214,15 +214,33 @@
 
 
 ;; -------------------------------------------------------------
-;; Game state
+;; Application state
 ;; -------------------------------------------------------------
 
 (defonce game-state
   (atom
     {:title "Draw shapes on the board"
      :lines [(make-line 0.2 0.1 0.2 0.9)]
-     :persons [(make-person 1.0 0.5)]
+     :persons [(make-person 1.0 1.0)]
      }))
+
+
+;; -------------------------------------------------------------
+;; Special weird recuring transformations
+;; -------------------------------------------------------------
+
+(defn triple-form
+  "Weird pattern of nesting (one left - two rights)"
+  [form]
+  (beside 0.4
+    form
+    (above 0.3 (flip form) form)
+    ))
+
+(defn repeat-pattern
+  "Repeat the application of a pattern several times"
+  [n combination form]
+  (nth (iterate combination form) n))
 
 
 ;; -------------------------------------------------------------
@@ -244,11 +262,7 @@
             frame))
         (doseq [p (:persons state)]
           (render
-            (beside 0.3
-              (person-renderer p)
-              (above 0.4
-                (flip (person-renderer p))
-                (person-renderer p)))
+            (repeat-pattern 3 triple-form (person-renderer p))
             frame))
         ))))
 
