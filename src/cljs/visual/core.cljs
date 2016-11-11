@@ -21,12 +21,104 @@
 ;; Create the main objects
 ;; -------------------------------------------------------------
 
-(defrecord Point [x y])
+(defrecord Vector [x y])
+
+(defrecord Frame [ctx origin x-axis y-axis])
+
+(defn make-frame
+  "Create a frame with the provided origin, height and width"
+  [ctx x y width height]
+  (Frame.
+    ctx
+    (Vector. x y)
+    (Vector. (+ x width) y)
+    (Vector. x (+ y height))
+    ))
+
+(defn to-frame-x
+  [{:keys [origin x-axis y-axis] :as frame} x]
+  (+ (:x origin) (* (:x x-axis) x)))
+
+(defn to-frame-y
+  [{:keys [origin x-axis y-axis] :as frame} y]
+  (+ (:y origin) (* (:y y-axis) y)))
+
+(defn to-frame-coord
+  "Transform a vector to fit the frame"
+  ;; TODO - Does not yet take into account the rotations
+  [frame v]
+  (Vector.
+    (to-frame-x frame (:x v))
+    (to-frame-y frame (:y v))
+    ))
+
+;; TODO - Factorize
+(defn line-to
+  [frame x y]
+  (let [p (to-frame-coord frame (Vector. x y))]
+    (canvas/line-to
+      (:ctx frame)
+      (:x p)
+      (:y p)
+      ))
+  frame)
+
+;; TODO - Factorize
+(defn move-to
+  [frame x y]
+  (let [p (to-frame-coord frame (Vector. x y))]
+    (canvas/move-to
+      (:ctx frame)
+      (:x p)
+      (:y p)
+      ))
+  frame)
+
+(defn stroke
+  [frame]
+  (canvas/stroke (:ctx frame))
+  frame)
+
+(defn ellipse
+  [frame x y w h]
+  ;; The implementation is weird because canvas/ellipse is bugged
+  (-> (:ctx frame)
+    (canvas/save)
+    (canvas/translate (to-frame-x frame x) (to-frame-y frame y))
+    (canvas/ellipse {:x 0 :y 0
+                     :rw (* w (get-in frame [:x-axis :x]))
+                     :rh (* h (get-in frame [:y-axis :y]))})
+    (canvas/restore)))
+
+(defn circle
+  [frame x y r]
+  (ellipse frame x y r r))
+
+(defn render-beside
+  [ratio render-form1 render-form2]
+  (fn [frame]
+    (let [x-orign (get-in frame [:origin :x])
+          x-scale (get-in frame [:x-axis :x])
+          l-frame (update-in frame [:x-axis :x] #(* ratio %))
+          r-frame (-> frame
+                    (assoc-in [:origin :x] (+ x-orign (* x-scale ratio)))
+                    (assoc-in [:x-axis :x] (* x-scale (- 1.0 ratio)))
+                    )]
+        (render-form1 l-frame)
+        (render-form2 r-frame)
+        frame
+      )))
+
+
+;; -------------------------------------------------------------
+;; Basic frame objects
+;; -------------------------------------------------------------
+
 (defrecord Line [line-start line-end])
 (defrecord Person [height width])
 
 (defn make-line [x0 y0 x1 y1]
-  (Line. (Point. x0 y0) (Point. x1 y1)))
+  (Line. (Vector. x0 y0) (Vector. x1 y1)))
 
 (defn make-person [h w]
   (Person. h w))
@@ -39,38 +131,22 @@
 (defonce game-state
   (atom
     {:title "Draw shapes on the board"
-     :lines [(make-line 100 100 200 200)]
-     :persons [(make-person 200 150)]
+     :lines [(make-line 0.0 0.0 1.0 1.0) , (make-line 0.0 1.0 1.0 0.0)]
+     :persons [(make-person 1.0 0.5)]
      }))
 
 
 ;; -------------------------------------------------------------
-;; Drawing entities
+;; Drawing simple entities
 ;; -------------------------------------------------------------
 
 (defn render-line
   "Render a line on the screen"
-  [ctx {:keys [line-start line-end]}]
-  (-> ctx
-    (canvas/stroke-width 6)
-    (canvas/stroke-style "black")
-    (canvas/move-to (:x line-start) (:y line-start))
-    (canvas/line-to (:x line-end) (:y line-end))
-    (canvas/stroke)
-    ))
-
-
-
-
-#_(defn render-rect
-  "Render a rectangle on the screen"
-  [ctx rect]
-  (-> ctx
-    (canvas/fill-rect
-      {:x (:x (:line-start rect))
-       :y (:y (:line-start rect))
-       :w (:x (:line-end rect))
-       :h (:y (:line-end rect))})
+  [{:keys [line-start line-end]} frame]
+  (-> frame
+    (move-to (:x line-start) (:y line-start))
+    (line-to (:x line-end) (:y line-end))
+    (stroke)
     ))
 
 
@@ -80,7 +156,7 @@
 
 (defn render-person
   "Render a person like form: the line gives the perimeter"
-  [ctx {:keys [height width] :as person}]
+  [{:keys [height width] :as person} frame]
   (let [head-base (* height 0.85)
         head-diag (- height head-base)
         head-ypos (+ head-base (/ head-diag 2))
@@ -88,28 +164,23 @@
         body-xpos (* width 0.5)
         arms-base (* height 0.55)
         arm-width (* width 0.4)]
-    (-> ctx
-      (canvas/save)
+    (-> frame
       ;; The legs
-      (canvas/move-to 0 0)
-      (canvas/line-to body-xpos body-base)
-      (canvas/line-to width 0)
+      (move-to 0 0)
+      (line-to body-xpos body-base)
+      (line-to width 0)
       ;; The body
-      (canvas/move-to body-xpos body-base)
-      (canvas/line-to body-xpos head-base)
+      (move-to body-xpos body-base)
+      (line-to body-xpos head-base)
       ;; The arms
-      (canvas/move-to body-xpos head-base)
-      (canvas/line-to (- body-xpos arm-width) arms-base)
-      (canvas/move-to body-xpos head-base)
-      (canvas/line-to (+ body-xpos arm-width) arms-base)
-      (canvas/stroke)
+      (move-to body-xpos head-base)
+      (line-to (- body-xpos arm-width) arms-base)
+      (move-to body-xpos head-base)
+      (line-to (+ body-xpos arm-width) arms-base)
+      (stroke)
       ;; The head
-      (canvas/circle {:x body-xpos :y head-ypos :r (/ head-diag 2)})
-      (canvas/restore)
+      (circle body-xpos head-ypos (/ head-diag 2))
       )))
-
-
-
 
 
 ;; -------------------------------------------------------------
@@ -123,11 +194,16 @@
     @game-state
     (fn update [_] @game-state)
     (fn draw [ctx state]
-      (doseq [l (:lines state)]
-        (render-line ctx l))
-      (doseq [p (:persons state)]
-        (render-person ctx p))
-      )))
+      (let [frame (make-frame ctx 0 0 WIDTH HEIGHT)]
+        (canvas/stroke-width ctx 6)
+        (doseq [l (:lines state)]
+          (render-line l frame))
+        (doseq [p (:persons state)]
+          ((render-beside 0.5
+             (partial render-person p)
+             (partial render-person p))
+            frame))
+        ))))
 
 (defn main-render
   "Render the space ship game"
